@@ -1,0 +1,63 @@
+syntax = "proto3";
+
+package detection;
+
+option go_package = "github.com/detection-engine/api";
+
+service DetectionService {
+  rpc IngestTelemetry(IngestTelemetryRequest) returns (IngestTelemetryResponse);
+  rpc GetRules(GetRulesRequest) returns (GetRulesResponse);
+}
+
+message TelemetryEvent {
+  string id = 1;
+  string source = 2;
+  string event_type = 3;
+  int64 timestamp = 4;
+  bytes payload = 5;
+  map<string, string> tags = 6;
+}
+
+message IngestTelemetryRequest {
+  TelemetryEvent event = 1;
+}
+
+message IngestTelemetryResponse {
+  string event_id = 1;
+  bool accepted = 2;
+  string message = 3;
+}
+
+message Alert {
+  string id = 1;
+  string rule_id = 2;
+  string rule_name = 3;
+  string severity = 4;
+  int64 timestamp = 5;
+  string event_id = 6;
+  repeated string indicators = 7;
+  map<string, string> enrichment = 8;
+  string description = 9;
+  map<string, string> metadata = 10;
+}
+
+message GetRulesRequest {
+  string filter = 1;
+}
+
+message Rule {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  string severity = 4;
+  string source = 5;
+  bytes definition = 6;
+  bool enabled = 7;
+  int64 created_at = 8;
+  int64 updated_at = 9;
+}
+
+message GetRulesResponse {
+  repeated Rule rules = 1;
+  int32 total = 2;
+}
