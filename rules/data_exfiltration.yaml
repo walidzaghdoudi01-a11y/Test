@@ -1,0 +1,27 @@
+id: rule_003
+name: Potential Data Exfiltration
+description: Detects large data transfers to external networks
+severity: high
+source: network_monitoring
+enabled: true
+definition:
+  event_types:
+    - network_traffic
+  conditions:
+    - field: event_type
+      operator: equals
+      value: network_traffic
+    - field: payload.data_bytes_transferred
+      operator: greater_than
+      value: 1073741824
+    - field: payload.destination
+      operator: starts_with
+      value: "external:"
+  actions:
+    - type: alert
+      indicators:
+        - data_exfiltration
+        - unusual_data_transfer
+      enrichment:
+        action: Review and potentially block connection
+        severity_boost: medium
