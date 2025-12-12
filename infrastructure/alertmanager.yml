@@ -1,0 +1,85 @@
+global:
+  resolve_timeout: 5m
+  smtp_smarthost: 'smtp.gmail.com:587'
+  smtp_from: 'alertmanager@example.com'
+  smtp_auth_username: 'alertmanager@example.com'
+  smtp_auth_password: 'your-password'
+  smtp_require_tls: true
+
+# Route tree for notifications
+route:
+  group_by: ['alertname', 'cluster', 'service']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 12h
+  receiver: 'default-receiver'
+  
+  routes:
+    # Critical alerts - immediate notification
+    - match:
+        severity: critical
+      receiver: 'critical-alerts'
+      group_wait: 0s
+      repeat_interval: 5m
+    
+    # High severity alerts
+    - match:
+        severity: high
+      receiver: 'high-alerts'
+      group_wait: 30s
+      repeat_interval: 1h
+    
+    # Medium and low severity alerts
+    - match:
+        severity: medium
+      receiver: 'medium-alerts'
+      repeat_interval: 4h
+
+# Notification receivers
+receivers:
+  - name: 'default-receiver'
+    webhook_configs:
+      - url: 'http://monitoring-service:8000/api/v1/monitoring/events'
+        send_resolved: true
+
+  - name: 'critical-alerts'
+    email_configs:
+      - to: 'security-critical@example.com'
+        headers:
+          Subject: '[CRITICAL] {{ .GroupLabels.alertname }}'
+    webhook_configs:
+      - url: 'https://hooks.slack.com/services/YOUR/WEBHOOK/URL'
+        send_resolved: true
+    # Uncomment for PagerDuty integration
+    # pagerduty_configs:
+    #   - service_key: 'YOUR_PAGERDUTY_SERVICE_KEY'
+
+  - name: 'high-alerts'
+    email_configs:
+      - to: 'security-team@example.com'
+        headers:
+          Subject: '[HIGH] {{ .GroupLabels.alertname }}'
+    webhook_configs:
+      - url: 'https://hooks.slack.com/services/YOUR/WEBHOOK/URL'
+        send_resolved: true
+
+  - name: 'medium-alerts'
+    webhook_configs:
+      - url: 'https://hooks.slack.com/services/YOUR/WEBHOOK/URL'
+        send_resolved: true
+
+# Inhibition rules
+inhibit_rules:
+  # Inhibit medium alerts if critical alert is firing
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'medium'
+    equal: ['alertname', 'cluster', 'service']
+  
+  # Inhibit low alerts if high alert is firing
+  - source_match:
+      severity: 'high'
+    target_match:
+      severity: 'low'
+    equal: ['alertname', 'cluster', 'service']
